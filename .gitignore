@@ -8,3 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Local environment files
+.env
+
+iwildcam-2019-fgvc6
