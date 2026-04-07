@@ -20,7 +20,7 @@ wild_animal_image_classification/
 ### Avoid Over-Engineering
 - Do not create unnecessary function wrappers
 - Do not add features that weren't requested
-- Prefer straightforward TensorFlow and `tf.data` pipelines over custom framework abstractions
+- Prefer straightforward PyTorch and `torch.utils.data` pipelines over custom framework abstractions
 - Keep scripts assignment-focused; avoid turning the project into a full application unless requested
 - Do not use verbose output formats:
   - No caps-locked headers with `=*80` dividers (e.g., "=== HEADER ===")
@@ -53,13 +53,6 @@ The `report.md` serves as the project report draft for code-related content only
 ### Report Guidelines
 - Every decision must be justified (dataset filtering, image resizing, augmentation, model/architecture choices, feature selection, etc.).
 - Add "Insert example.jpg here" when appropriate for plots/artifacts produced by the code.
-
-## Modeling Guidance
-
-- Use TensorFlow/Keras for image classification unless explicitly asked otherwise
-- Prefer transfer learning baselines before training a custom CNN from scratch
-- Use validation-aware training with checkpoints and early stopping for long-running experiments
-- Track dataset assumptions clearly, especially class imbalance, missing files, and metadata filtering
 
 ## File Operations
 
