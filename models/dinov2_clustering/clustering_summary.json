@@ -1,0 +1,12 @@
+{
+  "model": "vit_large_patch14_reg4_dinov2.lvd142m",
+  "embedding_dim": 1024,
+  "n_images_after_dedup": 24849,
+  "k_range": "5-25",
+  "best_k_silhouette": 25,
+  "best_k_knee": 14,
+  "best_k_used": 14,
+  "best_silhouette": 0.17972789704799652,
+  "ari": 0.18350303000152368,
+  "nmi": 0.3175393692836067
+}
