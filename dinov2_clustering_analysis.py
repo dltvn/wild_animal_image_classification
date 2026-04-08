@@ -11,6 +11,7 @@ import timm
 import torch
 from PIL import Image
 from sklearn.cluster import KMeans
+from sklearn.decomposition import PCA
 from kneed import KneeLocator
 from sklearn.metrics import adjusted_rand_score, normalized_mutual_info_score, silhouette_score
 from sklearn.manifold import TSNE
@@ -238,18 +239,30 @@ elbow_df = pd.DataFrame({
 elbow_path = embedding_dir / 'kmeans_elbow.csv'
 elbow_df.to_csv(elbow_path, index=False)
 
-# Plot elbow curves.
+# Compute best-K metrics before plotting.
+best_idx_silhouette = int(np.argmax(silhouettes))
+best_k_silhouette = k_values[best_idx_silhouette]
+kneedle = KneeLocator(k_values, inertias, S=1.0, curve='convex', direction='decreasing')
+best_k_knee = kneedle.elbow
+
+# Plot elbow curves with best-K markers.
 fig, axes = plt.subplots(1, 2, figsize=(14, 5))
 
-axes[0].plot(k_values, inertias, marker='o', color='steelblue')
+axes[0].plot(k_values, inertias, marker='o', color='steelblue', linewidth=2)
+axes[0].axvline(x=best_k_knee, color='red', linestyle='--', linewidth=1.5, label=f'Knee K={best_k_knee}')
+axes[0].axhline(y=inertias[k_values.index(best_k_knee)], color='red', linestyle=':', linewidth=1.2)
 axes[0].set_title('Elbow Method: Inertia')
 axes[0].set_xlabel('Number of clusters (K)')
 axes[0].set_ylabel('Inertia')
+axes[0].legend()
 
-axes[1].plot(k_values, silhouettes, marker='o', color='seagreen')
+axes[1].plot(k_values, silhouettes, marker='o', color='seagreen', linewidth=2)
+axes[1].axvline(x=best_k_silhouette, color='red', linestyle='--', linewidth=1.5, label=f'Best silhouette K={best_k_silhouette}')
+axes[1].axhline(y=silhouettes[best_idx_silhouette], color='red', linestyle=':', linewidth=1.2)
 axes[1].set_title('Silhouette Score vs K')
 axes[1].set_xlabel('Number of clusters (K)')
 axes[1].set_ylabel('Silhouette Score')
+axes[1].legend()
 
 for axis in axes:
     axis.grid(True, alpha=0.3)
@@ -261,14 +274,7 @@ plt.show()
 print(elbow_df)
 
 
-# ── Final KMeans at best K (highest silhouette) ───────────────────────────────
-
-best_idx_silhouette = int(np.argmax(silhouettes))
-best_k_silhouette = k_values[best_idx_silhouette]
-
-# Knee point from inertia using KneeLocator
-kneedle = KneeLocator(k_values, inertias, S=1.0, curve='convex', direction='decreasing')
-best_k_knee = kneedle.elbow
+# ── Final KMeans at best K (knee-based) ─────────────────────────────────────
 
 print(f'Best K by silhouette: {best_k_silhouette} (score={silhouettes[best_idx_silhouette]:.4f})')
 print(f'Elbow K by KneeLocator: {best_k_knee}')
@@ -292,6 +298,75 @@ nmi = normalized_mutual_info_score(metadata_df['label_index'], cluster_labels)
 print(f'Adjusted Rand Index (ARI): {ari:.4f}')
 print(f'Normalized Mutual Information (NMI): {nmi:.4f}')
 
+# ── K=13 comparison (matches ground-truth class count) ─────────────────────────
+print('\nRunning K=13 comparison...')
+k13_kmeans = KMeans(n_clusters=13, n_init=10, random_state=RANDOM_SEED)
+cluster_labels_k13 = k13_kmeans.fit_predict(embeddings)
+ari_k13 = adjusted_rand_score(metadata_df['label_index'], cluster_labels_k13)
+nmi_k13 = normalized_mutual_info_score(metadata_df['label_index'], cluster_labels_k13)
+sil_k13 = silhouette_score(embeddings, cluster_labels_k13)
+print(f'K=13  |  ARI: {ari_k13:.4f}  |  NMI: {nmi_k13:.4f}  |  Silhouette: {sil_k13:.4f}')
+print(f'K={best_k}  |  ARI: {ari:.4f}  |  NMI: {nmi:.4f}  |  Silhouette: {silhouettes[k_values.index(best_k)]:.4f}')
+
+
+# ── PCA visualization (K=13 vs K=14 comparison) ───────────────────────────────
+
+print('Running PCA...')
+pca = PCA(n_components=2, random_state=RANDOM_SEED)
+pca_projection = pca.fit_transform(embeddings)
+print(f'PCA explained variance ratio: {pca.explained_variance_ratio_}')
+print(f'Total variance explained: {pca.explained_variance_ratio_.sum():.4f}')
+
+# Side-by-side: species labels vs cluster for K=14
+fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+
+scatter_species = axes[0].scatter(
+    pca_projection[:, 0], pca_projection[:, 1],
+    c=metadata_df['label_index'], cmap='tab20', s=4, alpha=0.6
+)
+axes[0].set_title('PCA — Colored by Species Label (13 classes)')
+axes[0].set_xlabel('PCA 1')
+axes[0].set_ylabel('PCA 2')
+plt.colorbar(scatter_species, ax=axes[0], label='Species')
+
+scatter_cluster_k14 = axes[1].scatter(
+    pca_projection[:, 0], pca_projection[:, 1],
+    c=cluster_labels, cmap='tab20', s=4, alpha=0.6
+)
+axes[1].set_title(f'PCA — Colored by KMeans Cluster (K={best_k})')
+axes[1].set_xlabel('PCA 1')
+axes[1].set_ylabel('PCA 2')
+plt.colorbar(scatter_cluster_k14, ax=axes[1], label='Cluster')
+
+plt.tight_layout()
+plt.savefig(embedding_dir / 'pca_species_vs_cluster_k14.png', dpi=150)
+plt.show()
+
+# Side-by-side: species labels vs cluster for K=13
+fig, axes = plt.subplots(1, 2, figsize=(16, 7))
+
+axes[0].scatter(
+    pca_projection[:, 0], pca_projection[:, 1],
+    c=metadata_df['label_index'], cmap='tab20', s=4, alpha=0.6
+)
+axes[0].set_title('PCA — Colored by Species Label (13 classes)')
+axes[0].set_xlabel('PCA 1')
+axes[0].set_ylabel('PCA 2')
+plt.colorbar(scatter_species, ax=axes[0], label='Species')
+
+scatter_cluster_k13 = axes[1].scatter(
+    pca_projection[:, 0], pca_projection[:, 1],
+    c=cluster_labels_k13, cmap='tab20', s=4, alpha=0.6
+)
+axes[1].set_title(f'PCA — Colored by KMeans Cluster (K=13)')
+axes[1].set_xlabel('PCA 1')
+axes[1].set_ylabel('PCA 2')
+plt.colorbar(scatter_cluster_k13, ax=axes[1], label='Cluster')
+
+plt.tight_layout()
+plt.savefig(embedding_dir / 'pca_species_vs_cluster_k13.png', dpi=150)
+plt.show()
+
 
 # ── UMAP visualization ────────────────────────────────────────────────────────
 
@@ -301,6 +376,7 @@ umap_embeddings = umap_reducer.fit_transform(embeddings)
 metadata_df['umap_x'] = umap_embeddings[:, 0]
 metadata_df['umap_y'] = umap_embeddings[:, 1]
 
+np.save(embedding_dir / 'pca_embeddings.npy', pca_projection)
 np.save(embedding_dir / 'umap_embeddings.npy', umap_embeddings)
 
 # UMAP colored by cluster.

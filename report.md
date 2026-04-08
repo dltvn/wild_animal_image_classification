@@ -66,7 +66,29 @@ The inertia curve shows a gradual bend rather than a sharp knee, which is typica
 
 **Final K used: 14** (knee-based). K=14 is close to the number of ground-truth classes (13), suggesting the embedding space naturally partitions around the true number of species.
 
-## Clustering Quality
+### K=13 vs K=14 Comparison
+
+| K | ARI | NMI | Silhouette |
+|---:|---:|---:|---:|
+| 13 (ground-truth count) | 0.1790 | 0.3086 | 0.1564 |
+| 14 (knee-based, used) | 0.1835 | 0.3175 | 0.1606 |
+
+K=14 slightly outperforms K=13 on all three metrics, suggesting the embedding manifold has a natural partition just beyond the 13 ground-truth classes — possibly splitting a confusable species pair (e.g., coyote/dog or bobcat/cat) into separate clusters.
+
+## PCA Analysis
+
+PCA was applied to the 1024-dim DINOv2 embeddings and projected to 2D for visualization:
+
+- **PCA explained variance ratio**: PC1=16.9%, PC2=13.1%
+- **Total variance explained**: 29.96%
+
+Only ~30% of the variance is captured in the first two components, which is expected for high-dimensional deep embeddings. The PCA plots (one for K=13, one for K=14) are saved alongside the elbow plots.
+
+Insert `pca_species_vs_cluster_k13.png` here.
+
+Insert `pca_species_vs_cluster_k14.png` here.
+
+## Clustering Quality (K=14)
 
 | Metric | Value |
 |---|---:|
@@ -81,7 +103,9 @@ ARI of ~0.18 and NMI of ~0.32 indicate moderate alignment between clusters and s
 
 All saved to `models/dinov2_clustering/`:
 
-- `kmeans_elbow.png` — Inertia and silhouette curves for K=5–25
+- `kmeans_elbow.png` — Inertia and silhouette curves for K=5–25 with KneeLocator and silhouette best-K marked
+- `pca_species_vs_cluster_k13.png` — PCA 2D projection: species labels (left) vs K=13 clusters (right)
+- `pca_species_vs_cluster_k14.png` — PCA 2D projection: species labels (left) vs K=14 clusters (right)
 - `umap_by_cluster.png` — UMAP 2D projection colored by cluster assignment
 - `umap_by_species.png` — UMAP 2D projection colored by ground-truth species
 - `tsne_by_cluster.png` — t-SNE 2D projection colored by cluster assignment
