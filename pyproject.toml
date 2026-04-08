@@ -9,6 +9,7 @@ dependencies = [
     "jupyter>=1.1.1",
     "kaggle>=2.0.0",
     "kagglehub>=1.0.0",
+    "kneed>=0.8.6",
     "matplotlib>=3.10.8",
     "numpy>=2.4.4",
     "pandas>=3.0.1",
@@ -19,6 +20,7 @@ dependencies = [
     "timm>=1.0.26",
     "torch>=2.11.0",
     "torchvision>=0.26.0",
+    "umap-learn>=0.5.11",
 ]
 
 [tool.uv.sources]
